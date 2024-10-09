@@ -1,19 +1,32 @@
-from dotenv import load_dotenv
+from flask import Flask, request, jsonify
 import os
 import json
 import telebot
 import requests
 
 # Load environment variables
-load_dotenv()
 TOKEN = os.getenv('TELEGRAM_TOKEN')
 API_KEY = os.getenv('SAMBANOVA_API_KEY')
+
+# Initialize the Flask app
+app = Flask(__name__)
 
 # Initialize bot with your Telegram token
 bot = telebot.TeleBot(TOKEN)
 
 # SambaNova API details
 API_URL = "https://api.sambanova.ai/v1/chat/completions"
+
+@app.route(f'/{TOKEN}', methods=['POST'])
+def webhook():
+    json_str = request.get_data(as_text=True)
+    update = telebot.types.Update.de_json(json_str)
+    bot.process_new_updates([update])
+    return 'OK', 200
+
+@app.route('/', methods=['GET'])
+def index():
+    return jsonify({"status": "Bot is alive!"})
 
 def get_ai_response(message):
     headers = {
@@ -47,6 +60,5 @@ def handle_message(message):
     ai_response = get_ai_response(user_message)
     bot.reply_to(message, ai_response)
 
-# Start polling
 if __name__ == "__main__":
-    bot.polling()
+    app.run(debug=True)
