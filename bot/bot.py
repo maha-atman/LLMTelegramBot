@@ -3,6 +3,7 @@ import os
 import json
 import telebot
 import requests
+import random
 
 # Load environment variables
 TOKEN = os.getenv('TELEGRAM_TOKEN')
@@ -33,7 +34,6 @@ def get_ai_response(message):
         "Authorization": f"Bearer {API_KEY}",
         "Content-Type": "application/json"
     }
-
     data = {
         "stream": False,
         "model": "Meta-Llama-3.1-405B-Instruct",
@@ -44,15 +44,25 @@ def get_ai_response(message):
             }
         ]
     }
-
     response = requests.post(API_URL, headers=headers, json=data)
-
     if response.status_code == 200:
         result = response.json()
         ai_message = result['choices'][0]['message']['content']
-        return ai_message  # Directly return the AI message
+        return ai_message
     else:
         return "I'm sorry, but I encountered an error while processing your request. Please try again later."
+
+@bot.message_handler(commands=['start'])
+def send_welcome(message):
+    welcome_messages = [
+        "Greetings, intrepid explorer! I am M.A.H.A - your Multipurpose Artificial Human Assistant. Prepare to embark on a journey of knowledge and discovery!",
+        "Welcome to the future of assistance! I'm M.A.H.A, your Multipurpose Artificial Human Assistant. Together, we'll push the boundaries of what's possible!",
+        "Salutations, esteemed user! M.A.H.A at your service - your very own Multipurpose Artificial Human Assistant. Let's make the impossible possible!",
+        "Hello there! M.A.H.A here, your Multipurpose Artificial Human Assistant. Buckle up for an adventure in artificial intelligence!",
+        "Welcome aboard the SS Innovation! I'm Captain M.A.H.A, your Multipurpose Artificial Human Assistant. Let's chart a course for brilliance!"
+    ]
+    chosen_message = random.choice(welcome_messages)
+    bot.reply_to(message, chosen_message)
 
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
