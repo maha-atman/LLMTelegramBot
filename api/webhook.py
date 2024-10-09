@@ -17,3 +17,10 @@ def index():
 
 if __name__ == "__main__":
     app.run(debug=True)
+    
+@app.route('/api/send_message', methods=['POST'])
+def send_message():
+    data = request.get_json()
+    user_message = data.get('message')
+    ai_response = get_ai_response(user_message)
+    return jsonify({"reply": ai_response})
