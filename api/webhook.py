@@ -1,32 +1,19 @@
-from http.server import BaseHTTPRequestHandler
+from flask import Flask, request, jsonify
 from bot.bot import bot, TOKEN
 import telebot
-import json
 
-class handler(BaseHTTPRequestHandler):
-    def do_POST(self):
-        if self.path == f'/{TOKEN}':
-            content_length = int(self.headers['Content-Length'])
-            post_data = self.rfile.read(content_length)
-            update = telebot.types.Update.de_json(post_data.decode('utf-8'))
-            bot.process_new_updates([update])
-            self.send_response(200)
-            self.end_headers()
-        else:
-            self.send_response(403)
-            self.end_headers()
+app = Flask(__name__)
 
-    def do_GET(self):
-        self.send_response(200)
-        self.send_header('Content-type', 'application/json')
-        self.end_headers()
-        response = json.dumps({"status": "Bot is alive!"})
-        self.wfile.write(response.encode())
+@app.route(f'/{TOKEN}', methods=['POST'])
+def webhook():
+    json_str = request.get_data(as_text=True)
+    update = telebot.types.Update.de_json(json_str)
+    bot.process_new_updates([update])
+    return 'OK', 200
 
-def webhook(request):
-    if request.method == 'POST':
-        update = telebot.types.Update.de_json(request.get_data().decode('utf-8'))
-        bot.process_new_updates([update])
-        return 'OK', 200
-    else:
-        return json.dumps({"status": "Bot is alive!"})
+@app.route('/', methods=['GET'])
+def index():
+    return jsonify({"status": "Bot is alive!"})
+
+if __name__ == "__main__":
+    app.run(debug=True)
