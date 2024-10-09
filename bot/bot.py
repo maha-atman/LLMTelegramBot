@@ -1,6 +1,5 @@
 from flask import Flask, request, jsonify
 import os
-import json
 import telebot
 import requests
 import random
@@ -18,14 +17,14 @@ bot = telebot.TeleBot(TOKEN)
 # SambaNova API details
 API_URL = "https://api.sambanova.ai/v1/chat/completions"
 
-@app.route(f'/{TOKEN}', methods=['POST'])
+@app.route(f'/{TOKEN}', methods=['POST'])  # Webhook route for Telegram
 def webhook():
     json_str = request.get_data(as_text=True)
     update = telebot.types.Update.de_json(json_str)
     bot.process_new_updates([update])
     return 'OK', 200
 
-@app.route('/', methods=['GET'])
+@app.route('/', methods=['GET'])  # Health check route
 def index():
     return jsonify({"status": "Bot is alive!"})
 
@@ -71,4 +70,4 @@ def handle_message(message):
     bot.reply_to(message, ai_response)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()
