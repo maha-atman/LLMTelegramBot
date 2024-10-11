@@ -9,12 +9,17 @@ TOKEN = os.getenv('TELEGRAM_TOKEN')
 # Initialize FastAPI to handle webhook requests
 app = FastAPI()
 
+# Root route for health check or basic response
+@app.get("/")
+async def root():
+    return {"status": "Bot is alive and running!"}
+
 @app.on_event("startup")
 async def on_startup():
     bot_app = create_bot()
     vercel_url = os.getenv('VERCEL_URL')
-    
-    # Configure webhook URL for the Telegram bot
+
+    # Set the webhook for the Telegram bot
     await bot_app.bot.set_webhook(f"https://{vercel_url}/{TOKEN}")
 
 @app.post(f"/{TOKEN}")
