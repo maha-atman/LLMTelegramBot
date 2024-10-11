@@ -1,0 +1,25 @@
+{
+  "name": "llm-telegram-bot",
+  "version": "1.0.0",
+  "description": "Experimental LLM powered Telegram Bot",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/maha-atman/LLMTelegramBot.git"
+  },
+  "keywords": [
+    "llm",
+    "gpt",
+    "telegram",
+    "bot"
+  ],
+  "author": "MahatmA",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/maha-atman/LLMTelegramBot/issues"
+  },
+  "homepage": "https://github.com/maha-atman/LLMTelegramBot#readme"
+}
