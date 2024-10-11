@@ -86,20 +86,30 @@ async def get_ai_response(message: str, user_id: int):
     if not api_key:
         return f"{provider} API key not found. Please set the API key in the environment variables."
 
-    headers = {
-        "Content-Type": "application/json"
-    }
-    
+    headers = {"Content-Type": "application/json"}
+
     if user_id not in conversation_history:
         conversation_history[user_id] = []
+
     conversation_history[user_id].append({"role": "user", "content": message})
 
-    if provider == 'OpenAI':
+    if provider == 'Google':
+        API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+        data = {
+            "contents": [{"role": msg["role"], "parts": [{"text": msg["content"]}]} for msg in [system_message] + conversation_history.get(user_id, [])],
+            "generationConfig": {
+                "temperature": 0.7,
+                "topK": 40,
+                "topP": 0.95,
+                "maxOutputTokens": 8192
+            }
+        }
+    elif provider == 'OpenAI':
         API_URL = "https://api.openai.com/v1/chat/completions"
         headers["Authorization"] = f"Bearer {api_key}"
         data = {
             "model": model,
-            "messages": [system_message] + conversation_history,
+            "messages": [system_message] + conversation_history.get(user_id, []),
             "temperature": 0.7
         }
     elif provider == 'Groq':
@@ -107,7 +117,7 @@ async def get_ai_response(message: str, user_id: int):
         headers["Authorization"] = f"Bearer {api_key}"
         data = {
             "model": model,
-            "messages": [system_message] + conversation_history,
+            "messages": [system_message] + conversation_history.get(user_id, []),
             "temperature": 0.7,
             "max_tokens": 2048,
             "top_p": 0.9,
@@ -118,22 +128,11 @@ async def get_ai_response(message: str, user_id: int):
         headers["Authorization"] = f"Bearer {api_key}"
         data = {
             "model": model,
-            "messages": [system_message] + conversation_history,
+            "messages": [system_message] + conversation_history.get(user_id, []),
             "max_tokens": 2048,
             "temperature": 0.7,
             "top_p": 0.8,
             "stop": []
-        }
-    elif provider == 'Google':
-        API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
-        data = {
-            "contents": [{"role": msg["role"], "parts": [{"text": msg["content"]}]} for msg in [system_message] + conversation_history],
-            "generationConfig": {
-                "temperature": 0.7,
-                "topK": 40,
-                "topP": 0.95,
-                "maxOutputTokens": 8192
-            }
         }
     elif provider == 'Claude':
         API_URL = "https://api.anthropic.com/v1/messages"
@@ -143,13 +142,13 @@ async def get_ai_response(message: str, user_id: int):
             "model": model,
             "max_tokens": 2048,
             "temperature": 0.7,
-            "messages": [system_message] + conversation_history
+            "messages": [system_message] + conversation_history.get(user_id, [])
         }
     elif provider == 'Hyperbolic':
         API_URL = "https://api.hyperbolic.xyz/v1/chat/completions"
         headers["Authorization"] = f"Bearer {api_key}"
         data = {
-            "messages": [system_message] + conversation_history,
+            "messages": [system_message] + conversation_history.get(user_id, []),
             "model": model,
             "max_tokens": 2048,
             "temperature": 0.7,
@@ -161,7 +160,7 @@ async def get_ai_response(message: str, user_id: int):
         headers["Authorization"] = f"Bearer {api_key}"
         data = {
             "model": model,
-            "messages": [system_message] + conversation_history,
+            "messages": [system_message] + conversation_history.get(user_id, []),
             "temperature": 0.7,
             "max_tokens": 2048,
             "top_p": 1,
@@ -173,7 +172,7 @@ async def get_ai_response(message: str, user_id: int):
         headers["Authorization"] = f"Bearer {api_key}"
         data = {
             "model": model,
-            "messages": [system_message] + conversation_history,
+            "messages": [system_message] + conversation_history.get(user_id, []),
             "temperature": 0.7,
             "max_tokens": -1,
             "seed": 0,
@@ -185,7 +184,7 @@ async def get_ai_response(message: str, user_id: int):
         headers["Authorization"] = f"Bearer {api_key}"
         data = {
             "model": model,
-            "messages": [system_message] + conversation_history,
+            "messages": [system_message] + conversation_history.get(user_id, []),
             "temperature": 0.7,
             "stream": False
         }
@@ -201,7 +200,8 @@ async def get_ai_response(message: str, user_id: int):
             ai_message = result['content'][0]['text']
         else:
             ai_message = result['choices'][0]['message']['content']
-        conversation_history.append({"role": "assistant", "content": ai_message})
+
+        conversation_history[user_id].append({"role": "assistant", "content": ai_message})
         return ai_message
     return f"Error processing your request. Status code: {response.status_code}"
 
@@ -209,80 +209,62 @@ welcome_messages = [
     "Greetings, intrepid explorer! I am M.A.H.A - your Multipurpose Artificial Human Assistant.",
     "Welcome to the future of assistance! I'm M.A.H.A, your Multipurpose Artificial Human Assistant.",
     "Salutations, esteemed user! M.A.H.A at your service - your very own Multipurpose Artificial Human Assistant.",
-    "Hello there! M.A.H.A here, your trusted Multipurpose Artificial Human Assistant.",
-    "Welcome aboard! I'm M.A.H.A, your Multipurpose Artificial Human Assistant for all things AI and beyond.",
-    "Hi, I'm M.A.H.A - your Multipurpose Artificial Human Assistant, here to help you explore AI!",
-    "Salutations! M.A.H.A, your Multipurpose Artificial Human Assistant, at your service!",
-    "Greetings! M.A.H.A, your Multipurpose Artificial Human Assistant, is ready to push the boundaries of possibility!",
-    "Welcome! I'm M.A.H.A, your Multipurpose Artificial Human Assistant, here to solve problems and explore ideas.",
-    "Hello! M.A.H.A, your Multipurpose Artificial Human Assistant, reporting for duty. Let's get started!"
+    "Hello! I'm M.A.H.A, here to help you navigate the world of AI assistance.",
+    "Welcome aboard! I'm M.A.H.A, your Multipurpose Artificial Human Assistant, ready to assist you.",
+    "Ahoy! I'm M.A.H.A, your guide through the realms of AI. How may I assist you today?",
+    "Greetings! You’ve summoned M.A.H.A, your Multipurpose Artificial Human Assistant. What can I do for you?",
+    "Hello! I’m M.A.H.A, your Multipurpose Artificial Human Assistant, eager to assist you.",
+    "Welcome! I am M.A.H.A, your companion in the world of AI. How can I help you today?",
+    "Hi there! I’m M.A.H.A, your Multipurpose Artificial Human Assistant, at your service!"
 ]
 
 async def start(update: Update, context):
     welcome_message = random.choice(welcome_messages)
-    command_info = (
-        "\n\nHere are the available commands:\n\n"
-        "/settings - Change AI provider and model\n"
-        "/current_ai - Check current AI provider and model\n"
-        "/list_models - List all available AI providers and models\n"
-        "/clear_chat - Clear your conversation history\n"
-        "/help - Display this help message\n\n"
-        "You can start chatting with me directly by typing your message. "
-        "The default AI provider is set to SambaNova with the Meta-Llama-3.1-405B-Instruct model."
-    )
-    full_message = welcome_message + command_info
-    await update.message.reply_text(full_message)
+    await update.message.reply_text(welcome_message)
 
 async def show_provider_selection(update: Update, context):
-    keyboard = [[InlineKeyboardButton(provider, callback_data=f"provider_{provider}") for provider in AI_PROVIDERS.keys()]]
+    keyboard = [[InlineKeyboardButton(provider, callback_data=provider)] for provider in AI_PROVIDERS.keys()]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text('Please select an AI provider:', reply_markup=reply_markup)
+    await update.callback_query.message.reply_text("Please select an AI provider:", reply_markup=reply_markup)
 
-async def show_model_selection(update: Update, context, provider):
-    keyboard = [[InlineKeyboardButton(model, callback_data=f"model_{provider}_{model}") for model in AI_PROVIDERS[provider]]]
+async def show_model_selection(update: Update, context):
+    provider = update.callback_query.data
+    keyboard = [[InlineKeyboardButton(model, callback_data=model)] for model in AI_PROVIDERS[provider]]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.callback_query.message.edit_text(f'Please select a model for {provider}:', reply_markup=reply_markup)
+    await update.callback_query.message.reply_text(f"Please select a model for {provider}:", reply_markup=reply_markup)
 
-async def handle_callback(update: Update, context):
-    query = update.callback_query
-    await query.answer()
-    
-    data = query.data
+async def change_provider(update: Update, context):
     user_id = update.effective_user.id
-    
-    if data.startswith('provider_'):
-        provider = data.split('_')[1]
-        user_preferences[user_id] = {'provider': provider}
-        await show_model_selection(update, context, provider)
-    elif data.startswith('model_'):
-        _, provider, model = data.split('_', 2)
-        user_preferences[user_id] = {'provider': provider, 'model': model}
-        await query.message.edit_text(f'You have selected {provider} with model {model}. You can now start chatting!')
+    provider = update.callback_query.data
+    user_preferences.setdefault(user_id, {})['provider'] = provider
+    await update.callback_query.message.reply_text(f"Provider changed to: {provider}")
+    await show_model_selection(update, context)
 
-async def handle_message(update: Update, context):
+async def change_model(update: Update, context):
+    user_id = update.effective_user.id
+    model = update.callback_query.data
+    user_preferences[user_id]['model'] = model
+    await update.callback_query.message.reply_text(f"Model changed to: {model}")
+
+async def echo(update: Update, context):
+    user_id = update.effective_user.id
     user_message = update.message.text
-    user_id = update.effective_user.id
-    
-    if user_id not in user_preferences:
-        user_preferences[user_id] = {'provider': DEFAULT_PROVIDER, 'model': DEFAULT_MODEL}
-    
     ai_response = await get_ai_response(user_message, user_id)
-    
-    if len(ai_response) > MAX_MESSAGE_LENGTH:
-        for i in range(0, len(ai_response), MAX_MESSAGE_LENGTH):
-            chunk = ai_response[i:i + MAX_MESSAGE_LENGTH]
-            await update.message.reply_text(chunk)
-    else:
-        await update.message.reply_text(ai_response)
+    await update.message.reply_text(ai_response)
 
-def create_bot():
+def main():
     app = ApplicationBuilder().token(TOKEN).build()
-    app.add_handler(CommandHandler('start', start))
-    app.add_handler(CommandHandler('settings', show_provider_selection))
-    app.add_handler(CommandHandler('current_ai', current_ai))
-    app.add_handler(CommandHandler('list_models', list_models))
-    app.add_handler(CommandHandler('clear_chat', clear_chat))
-    app.add_handler(CommandHandler('help', help_command))
-    app.add_handler(CallbackQueryHandler(handle_callback))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    return app
+
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("current_ai", current_ai))
+    app.add_handler(CommandHandler("list_models", list_models))
+    app.add_handler(CommandHandler("clear_chat", clear_chat))
+    app.add_handler(CommandHandler("help", help_command))
+    app.add_handler(CallbackQueryHandler(change_provider, pattern="|".join(AI_PROVIDERS.keys())))
+    app.add_handler(CallbackQueryHandler(change_model, pattern="|".join(sum(AI_PROVIDERS.values(), []))))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
+
+    app.run_polling()
+
+if __name__ == "__main__":
+    main()
