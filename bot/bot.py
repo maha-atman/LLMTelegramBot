@@ -269,12 +269,16 @@ async def start(update: Update, context):
     await update.message.reply_text(full_message)
 
 async def show_provider_selection(update: Update, context):
-    keyboard = [[InlineKeyboardButton(provider, callback_data=f"provider_{provider}") for provider in AI_PROVIDERS.keys()]]
+    keyboard = []
+    for provider in AI_PROVIDERS.keys():
+        keyboard.append([InlineKeyboardButton(provider, callback_data=f"provider_{provider}")])
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text('Please select an AI provider:', reply_markup=reply_markup)
 
 async def show_model_selection(update: Update, context, provider):
-    keyboard = [[InlineKeyboardButton(model, callback_data=f"model_{provider}_{model}") for model in AI_PROVIDERS[provider]]]
+    keyboard = []
+    for model in AI_PROVIDERS[provider]:
+        keyboard.append([InlineKeyboardButton(model, callback_data=f"model_{provider}_{model}")])
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.callback_query.message.edit_text(f'Please select a model for {provider}:', reply_markup=reply_markup)
 
