@@ -16,7 +16,7 @@
       "dest": "api/webhook.py"
     },
     {
-      "src": "/(.*)",
+      "src": "/",
       "dest": "frontend/index.html"
     }
   ]
