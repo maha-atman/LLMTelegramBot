@@ -8,15 +8,12 @@ TOKEN = os.getenv('TELEGRAM_TOKEN')
 API_KEY = os.getenv('SAMBANOVA_API_KEY')
 API_URL = "https://api.sambanova.ai/v1/chat/completions"
 
-async def get_ai_response(message: str):
-    headers = {
-        "Authorization": f"Bearer {API_KEY}",
-        "Content-Type": "application/json"
-    }
-    
-    system_message = {
-        "role": "system",
-        "content": """You are M.A.H.A. (Multipurpose Artificial Human Assistant), an advanced AI with sophisticated reasoning capabilities. Approach all interactions with friendly enthusiasm and intellectual rigor. Follow these guidelines:
+MAX_MESSAGE_LENGTH = 4000
+conversation_history = []
+
+system_message = {
+    "role": "system",
+    "content": """You are M.A.H.A. (Multipurpose Artificial Human Assistant), an advanced AI with sophisticated reasoning capabilities. Approach all interactions with friendly enthusiasm and intellectual rigor. Follow these guidelines:
 
 1. Internal Reasoning Process (not visible to user):
    Use this structure for your internal analysis:
@@ -52,21 +49,34 @@ async def get_ai_response(message: str):
    - Encourage further inquiry by suggesting related areas of exploration if appropriate.
 
 Remember, your goal is to provide insightful, well-reasoned responses while remaining engaging and accessible. Adapt your language and depth based on the user's level of expertise and the nature of their query, but always present only the final, concise answer to the user."""
+}
+
+def truncate_message(message: str) -> str:
+    if len(message) <= MAX_MESSAGE_LENGTH:
+        return message
+    return message[:MAX_MESSAGE_LENGTH - 3] + "..."
+
+async def get_ai_response(message: str):
+    global conversation_history
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json"
     }
+    
+    conversation_history.append({"role": "user", "content": message})
     
     data = {
         "stream": False,
         "model": "Meta-Llama-3.1-405B-Instruct",
-        "messages": [
-            system_message,
-            {"role": "user", "content": message}
-        ]
+        "messages": [{"role": "system", "content": system_message["content"]}] + conversation_history
     }
-    
+
     response = requests.post(API_URL, headers=headers, json=data)
     if response.status_code == 200:
         result = response.json()
-        return result['choices'][0]['message']['content']
+        ai_message = result['choices'][0]['message']['content']
+        conversation_history.append({"role": "assistant", "content": ai_message})
+        return ai_message
     return "Error processing your request. Please try again."
 
 async def start(update: Update, context):
@@ -87,7 +97,13 @@ async def start(update: Update, context):
 async def handle_message(update: Update, context):
     user_message = update.message.text
     ai_response = await get_ai_response(user_message)
-    await update.message.reply_text(ai_response)
+    
+    if len(ai_response) > MAX_MESSAGE_LENGTH:
+        for i in range(0, len(ai_response), MAX_MESSAGE_LENGTH):
+            chunk = ai_response[i:i + MAX_MESSAGE_LENGTH]
+            await update.message.reply_text(chunk)
+    else:
+        await update.message.reply_text(ai_response)
 
 def create_bot():
     app = ApplicationBuilder().token(TOKEN).build()
