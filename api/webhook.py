@@ -1,26 +1,23 @@
-# webhook.py
-from flask import Flask, request, jsonify
-from bot.bot import bot, TOKEN, get_ai_response  # Import get_ai_response
+import os
+from telegram import Update
+from telegram.ext import Application
+from bot import create_bot
 
-app = Flask(__name__)
+TOKEN = os.getenv('TELEGRAM_TOKEN')
 
-@app.route(f'/{TOKEN}', methods=['POST'])  # Webhook for Telegram
-def webhook():
-    json_str = request.get_data(as_text=True)
-    update = telebot.types.Update.de_json(json_str)
-    bot.process_new_updates([update])
-    return 'OK', 200
+def main():
+    app = create_bot()
 
-@app.route('/', methods=['GET'])  # Health check route
-def index():
-    return jsonify({"status": "Bot is alive!"})
+    # Vercel automatically provides the deployment URL
+    vercel_url = os.getenv('VERCEL_URL')
 
-@app.route('/api/send_message', methods=['POST'])  # Endpoint for sending messages
-def send_message():
-    data = request.get_json()
-    user_message = data.get('message')
-    ai_response = get_ai_response(user_message)  # Call the imported function
-    return jsonify({"reply": ai_response})
+    # Configure the bot's webhook
+    app.run_webhook(
+        listen="0.0.0.0",
+        port=int(os.getenv("PORT", "3000")),
+        url_path=TOKEN,
+        webhook_url=f"https://{vercel_url}/{TOKEN}"
+    )
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    main()
