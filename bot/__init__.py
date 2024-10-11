@@ -1,1 +1,1 @@
-from .bot import create_bot
+from .bot import create_bot, handle_callback
