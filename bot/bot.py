@@ -1,6 +1,8 @@
 import os
 import random
 import requests
+from anthropic import Anthropic
+import google.generativeai as genai
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackQueryHandler
 
@@ -68,6 +70,10 @@ system_message = {
 
 Remember, your goal is to provide insightful, well-reasoned responses while remaining engaging and accessible. Adapt your language and depth based on the user's level of expertise and the nature of their query, but always present only the final, concise answer to the user."""
 }
+
+#Initialize Google & Claude API
+anthropic_client = Anthropic(api_key=os.getenv("CLAUDE_API_KEY"))
+genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 def truncate_message(message: str) -> str:
     if len(message) <= MAX_MESSAGE_LENGTH:
