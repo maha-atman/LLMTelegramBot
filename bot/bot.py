@@ -144,13 +144,15 @@ async def get_ai_response(message: str, user_id: int):
             "max_output_tokens": 8192,
         }
         
+        # Format history for Google
         google_model = genai.GenerativeModel(
             model_name=model,
             generation_config=generation_config,
             system_instruction=system_message["content"]
         )
         
-        chat = google_model.start_chat(history=conversation_history[user_id])
+        # Start chat with formatted history
+        chat = google_model.start_chat(history=[{"role": msg["role"], "text": msg["content"]} for msg in conversation_history[user_id]])
         response = chat.send_message(message)
         ai_message = response.text
 
