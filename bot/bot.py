@@ -225,18 +225,18 @@ async def get_ai_response(message: str, user_id: int):
     response = requests.post(API_URL, headers=headers, json=data)
     if response.status_code == 200:
         result = response.json()
-    
-    if provider == 'Google':
-        ai_message = result['candidates'][0]['output']  # Updated Google response handling
-    elif provider == 'Claude':
-        ai_message = result['completion']  # Updated Claude response handling
+        
+        if provider == 'Google':
+            ai_message = result['candidates'][0]['output']
+        elif provider == 'Claude':
+            ai_message = result['completion']
+        else:
+            ai_message = result['choices'][0]['message']['content']
+
+        conversation_history[user_id].append({"role": "assistant", "content": ai_message})
+        return ai_message
     else:
-        ai_message = result['choices'][0]['message']['content']  # Default for other providers
-
-    conversation_history[user_id].append({"role": "assistant", "content": ai_message})
-    return ai_message
-
-return f"Error processing your request. Status code: {response.status_code}"
+        return f"Error processing your request. Status code: {response.status_code}"
 
 
 welcome_messages = [
