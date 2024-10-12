@@ -17,7 +17,7 @@ AI_PROVIDERS = {
     'Groq': [ 'llama-3.2-90b-text-preview','llama-3.1-70b-versatile', 'whisper-large-v3-turbo', 'llama-3.2-11b-vision-preview',],
     'Together': ['meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo', 'meta-llama/Llama-Vision-Free', 'Qwen/Qwen2.5-72B-Instruct-Turbo'],
     'Google': [ 'gemini-1.5-pro-002','gemini-1.5-flash-002',],
-    'Claude': ['claude-3-5-sonnet-20240620'],
+    'Anthropic': ['claude-3-5-sonnet-20240620'],
     'Hyperbolic': ['NousResearch/Hermes-3-Llama-3.1-70B', 'meta-llama/Llama-3.2-90B-Vision-Instruct', 'Qwen/Qwen2-VL-72B-Instruct', 'mistralai/Pixtral-12B-2409'],
     'Mistral': ['mistral-large-latest'],
     'Cerebras': ['llama3.1-70b'],
@@ -71,8 +71,8 @@ system_message = {
 Remember, your goal is to provide insightful, well-reasoned responses while remaining engaging and accessible. Adapt your language and depth based on the user's level of expertise and the nature of their query, but always present only the final, concise answer to the user."""
 }
 
-#Initialize Google & Claude API
-anthropic_client = Anthropic(api_key=os.getenv("ARTHROPIC_API_KEY"))
+#Initialize Google & Anthropic API
+anthropic_client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 def truncate_message(message: str) -> str:
@@ -154,8 +154,8 @@ async def get_ai_response(message: str, user_id: int):
         response = chat.send_message(message)
         ai_message = response.text
 
-    elif provider == 'Claude':
-        # Prepare messages for Claude API
+    elif provider == 'Anthropic':
+        # Prepare messages for Anthropic API
         messages = [{"role": "system", "content": system_message["content"]}] + \
                    [{"role": msg["role"], "content": msg["content"]} for msg in conversation_history.get(user_id, [])] + \
                    [{"role": "user", "content": message}]
