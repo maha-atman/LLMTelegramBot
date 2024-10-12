@@ -72,7 +72,7 @@ Remember, your goal is to provide insightful, well-reasoned responses while rema
 }
 
 #Initialize Google & Claude API
-anthropic_client = Anthropic(api_key=os.getenv("CLAUDE_API_KEY"))
+anthropic_client = Anthropic(api_key=os.getenv("ARTHROPIC_API_KEY"))
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 def truncate_message(message: str) -> str:
@@ -143,25 +143,32 @@ async def get_ai_response(message: str, user_id: int):
             "top_k": 40,
             "max_output_tokens": 8192,
         }
+        
         google_model = genai.GenerativeModel(
             model_name=model,
             generation_config=generation_config,
-            system_instruction=system_message["content"],
+            system_instruction=system_message["content"]
         )
-        chat = google_model.start_chat(history=[])
+        
+        chat = google_model.start_chat(history=conversation_history[user_id])
         response = chat.send_message(message)
         ai_message = response.text
 
     elif provider == 'Claude':
-        messages = [system_message] + conversation_history[user_id]
-        response = anthropic_client.messages.create(
-            model=model,
-            max_tokens=1000,
-            temperature=0.7,
-            system=system_message["content"],
-            messages=[{"role": msg["role"], "content": msg["content"]} for msg in messages]
-        )
-        ai_message = response.content[0].text
+        # Prepare messages for Claude API
+        messages = [{"role": "system", "content": system_message["content"]}] + \
+                   [{"role": msg["role"], "content": msg["content"]} for msg in conversation_history.get(user_id, [])] + \
+                   [{"role": "user", "content": message}]
+
+        try:
+            response = anthropic_client.messages.create(
+                model=model,
+                max_tokens=1000,
+                messages=messages
+            )
+            ai_message = response['completion']
+        except Exception as e:
+            return f"Error in Claude AI call: {str(e)}"
 
     else:
         headers = {"Content-Type": "application/json"}
