@@ -142,6 +142,7 @@ async def get_ai_response(message: str, user_id: int):
             "top_p": 0.95,
             "top_k": 40,
             "max_output_tokens": 8192,
+            "response_mime_type": "text/plain",
         }
         
         # Format history for Google
@@ -158,17 +159,25 @@ async def get_ai_response(message: str, user_id: int):
 
     elif provider == 'Anthropic':
         # Prepare messages for Anthropic API
-        messages = [{"role": "system", "content": system_message["content"]}] + \
-                   [{"role": msg["role"], "content": msg["content"]} for msg in conversation_history.get(user_id, [])] + \
-                   [{"role": "user", "content": message}]
-
+        user_message = {
+            "role": "user",
+            "content": [
+                {
+                    "type": "text",
+                    "text": message
+                }
+            ]
+        }
+        
         try:
             response = anthropic_client.messages.create(
                 model=model,
                 max_tokens=1000,
-                messages=messages
+                temperature=0,  # Adjust the temperature as needed
+                system=system_message["content"],
+                messages=[user_message]
             )
-            ai_message = response['completion']
+            ai_message = response.content
         except Exception as e:
             return f"Error in Anthropic AI call: {str(e)}"
 
