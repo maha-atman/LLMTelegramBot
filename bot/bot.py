@@ -122,6 +122,8 @@ async def get_ai_response(message: str, user_id: int):
         return f"{provider} API key not found. Please set the API key in the environment variables."
 
     headers = {"Content-Type": "application/json"}
+    API_URL = ""
+    data = {}
 
     if user_id not in conversation_history:
         conversation_history[user_id] = []
@@ -129,20 +131,37 @@ async def get_ai_response(message: str, user_id: int):
     conversation_history[user_id].append({"role": "user", "content": message})
 
     if provider == 'Google':
-        API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
-        data = {
-            "contents": [{"role": msg["role"] if msg["role"] != "assistant" else "model", 
-                          "parts": [{"text": msg["content"]}]} 
-                         for msg in [system_message] + conversation_history[user_id]],
-            "generationConfig": {
-                "temperature": 0.7,
-                "topK": 40,
-                "topP": 0.95,
-                "maxOutputTokens": 8192
-            }
+        generation_config = {
+            "temperature": 0.7,
+            "top_p": 0.95,
+            "top_k": 40,
+            "max_output_tokens": 8192,
         }
+        google_model = genai.GenerativeModel(
+            model_name=model,
+            generation_config=generation_config,
+            system_instruction=system_message["content"],
+        )
+        chat = google_model.start_chat(history=[])
+        response = chat.send_message(message)
+        ai_message = response.text
 
-    elif provider == 'OpenAI':
+    elif provider == 'Claude':
+        messages = [system_message] + conversation_history[user_id]
+        response = anthropic_client.messages.create(
+            model=model,
+            max_tokens=1000,
+            temperature=0.7,
+            system=system_message["content"],
+            messages=[{"role": msg["role"], "content": msg["content"]} for msg in messages]
+        )
+        ai_message = response.content[0].text
+
+    else:
+        headers = {"Content-Type": "application/json"}
+        headers["Authorization"] = f"Bearer {api_key}"
+        
+    if provider == 'OpenAI':
         API_URL = "https://api.openai.com/v1/chat/completions"
         headers["Authorization"] = f"Bearer {api_key}"
         data = {
@@ -171,18 +190,6 @@ async def get_ai_response(message: str, user_id: int):
             "temperature": 0.7,
             "top_p": 0.8,
             "stop": []
-        }
-    elif provider == 'Claude':
-        API_URL = "https://api.anthropic.com/v1/messages"
-        headers.update({
-            "x-api-key": api_key,
-            "anthropic-version": "2023-06-01"
-        })
-        data = {
-            "model": model,
-            "max_tokens": 2048,
-            "temperature": 0.7,
-            "messages": [system_message] + conversation_history[user_id]
         }
     elif provider == 'Hyperbolic':
         API_URL = "https://api.hyperbolic.xyz/v1/chat/completions"
@@ -234,18 +241,12 @@ async def get_ai_response(message: str, user_id: int):
     response = requests.post(API_URL, headers=headers, json=data)
     if response.status_code == 200:
         result = response.json()
-        
-        if provider == 'Google':
-            ai_message = result['candidates'][0]['content']['parts'][0]['text']
-        elif provider == 'Claude':
-            ai_message = result['content'][0]['text']
-        else:
-            ai_message = result['choices'][0]['message']['content']
-
-        conversation_history[user_id].append({"role": "assistant", "content": ai_message})
-        return ai_message
+        ai_message = result['choices'][0]['message']['content']
     else:
         return f"Error processing your request. Status code: {response.status_code}, Response: {response.text}"
+
+    conversation_history[user_id].append({"role": "assistant", "content": ai_message})
+    return ai_message
 
 welcome_messages = [
     "Greetings, intrepid explorer! I am M.A.H.A - your Multipurpose Artificial Human Assistant.",
