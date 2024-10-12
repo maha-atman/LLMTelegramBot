@@ -1,5 +1,5 @@
-python-telegram-bot==21.6
-requests==2.32.3
-fastapi==0.115.2
-anthropic==0.36.0
-google-generativeai==0.8.32
+python-telegram-bot
+requests
+fastapi
+anthropic
+google-generativeai
