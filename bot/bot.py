@@ -11,15 +11,15 @@ conversation_history = {}
 
 # Define AI providers and their models
 AI_PROVIDERS = {
-    'OpenAI': ['gpt-4o-mini'],
-    'Groq': ['llama-3.1-70b-versatile'],
-    'Together': ['meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo'],
-    'Google': ['gemini-1.5-flash-002'],
+    'OpenAI': ['gpt-4o','gpt-4o-mini'],
+    'Groq': [ 'llama-3.2-90b-text-preview','llama-3.1-70b-versatile', 'whisper-large-v3-turbo', 'llama-3.2-11b-vision-preview',],
+    'Together': ['meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo', 'meta-llama/Llama-Vision-Free', 'Qwen/Qwen2.5-72B-Instruct-Turbo'],
+    'Google': [ 'gemini-1.5-pro-002','gemini-1.5-flash-002',],
     'Claude': ['claude-3-5-sonnet-20240620'],
-    'Hyperbolic': ['NousResearch/Hermes-3-Llama-3.1-70B'],
+    'Hyperbolic': ['NousResearch/Hermes-3-Llama-3.1-70B', 'meta-llama/Llama-3.2-90B-Vision-Instruct', 'Qwen/Qwen2-VL-72B-Instruct', 'mistralai/Pixtral-12B-2409'],
     'Mistral': ['mistral-large-latest'],
     'Cerebras': ['llama3.1-70b'],
-    'SambaNova': ['Meta-Llama-3.1-405B-Instruct']
+    'SambaNova': ['Meta-Llama-3.1-405B-Instruct', 'Meta-Llama-3.1-70B-Instruct']
 }
 
 # Default provider and model
@@ -139,6 +139,7 @@ async def get_ai_response(message: str, user_id: int):
                 "maxOutputTokens": 8192
             }
         }
+
     elif provider == 'OpenAI':
         API_URL = "https://api.openai.com/v1/chat/completions"
         headers["Authorization"] = f"Bearer {api_key}"
@@ -254,7 +255,13 @@ welcome_messages = [
 ]
 
 async def start(update: Update, context):
+    user_id = update.effective_user.id
+    provider = user_preferences.get(user_id, {}).get('provider', DEFAULT_PROVIDER)
+    model = user_preferences.get(user_id, {}).get('model', DEFAULT_MODEL)
+    
     welcome_message = random.choice(welcome_messages)
+    current_model_info = f"\n\nCurrently, you're using:\nAI Provider: {provider}\nModel: {model}\n"
+    
     command_info = (
         "\n\nHere are the available commands:\n\n"
         "/settings - Change AI provider and model\n"
@@ -263,9 +270,9 @@ async def start(update: Update, context):
         "/clear_chat - Clear your conversation history\n"
         "/help - Display this help message\n\n"
         "You can start chatting with me directly by typing your message. "
-        "The default AI provider is set to SambaNova with the Meta-Llama-3.1-405B-Instruct model."
     )
-    full_message = welcome_message + command_info
+    
+    full_message = welcome_message + current_model_info + command_info
     await update.message.reply_text(full_message)
 
 async def show_provider_selection(update: Update, context):
