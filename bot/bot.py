@@ -131,13 +131,9 @@ async def get_ai_response(message: str, user_id: int):
     if provider == 'Google':
         API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
         data = {
-            "contents": [{"role": msg["role"], "parts": [{"text": msg["content"]}]} for msg in [system_message] + conversation_history.get(user_id, [])],
-            "generationConfig": {
-                "temperature": 0.7,
-                "topK": 40,
-                "topP": 0.95,
-                "maxOutputTokens": 8192
-            }
+            "prompt": {"messages": [{"author": msg["role"], "content": msg["content"]} for msg in [system_message] + conversation_history.get(user_id, [])]},
+            "temperature": 0.7,
+            "candidate_count": 1
         }
 
     elif provider == 'OpenAI':
@@ -171,14 +167,13 @@ async def get_ai_response(message: str, user_id: int):
             "stop": []
         }
     elif provider == 'Claude':
-        API_URL = "https://api.anthropic.com/v1/messages"
+        API_URL = "https://api.anthropic.com/v1/complete"
         headers["x-api-key"] = api_key
-        headers["anthropic-version"] = "2023-06-01"
         data = {
+            "prompt": "".join([msg["content"] for msg in [system_message] + conversation_history.get(user_id, [])]),
             "model": model,
-            "max_tokens": 2048,
-            "temperature": 0.7,
-            "messages": [system_message] + conversation_history.get(user_id, [])
+            "max_tokens_to_sample": 2048,
+            "temperature": 0.7
         }
     elif provider == 'Hyperbolic':
         API_URL = "https://api.hyperbolic.xyz/v1/chat/completions"
@@ -230,16 +225,19 @@ async def get_ai_response(message: str, user_id: int):
     response = requests.post(API_URL, headers=headers, json=data)
     if response.status_code == 200:
         result = response.json()
-        if provider == 'Google':
-            ai_message = result['candidates'][0]['content']['parts'][0]['text']
-        elif provider == 'Claude':
-            ai_message = result['content'][0]['text']
-        else:
-            ai_message = result['choices'][0]['message']['content']
+    
+    if provider == 'Google':
+        ai_message = result['candidates'][0]['output']  # Updated Google response handling
+    elif provider == 'Claude':
+        ai_message = result['completion']  # Updated Claude response handling
+    else:
+        ai_message = result['choices'][0]['message']['content']  # Default for other providers
 
-        conversation_history[user_id].append({"role": "assistant", "content": ai_message})
-        return ai_message
-    return f"Error processing your request. Status code: {response.status_code}"
+    conversation_history[user_id].append({"role": "assistant", "content": ai_message})
+    return ai_message
+
+return f"Error processing your request. Status code: {response.status_code}"
+
 
 welcome_messages = [
     "Greetings, intrepid explorer! I am M.A.H.A - your Multipurpose Artificial Human Assistant.",
