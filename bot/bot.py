@@ -168,7 +168,7 @@ async def get_ai_response(message: str, user_id: int):
             )
             ai_message = response['completion']
         except Exception as e:
-            return f"Error in Claude AI call: {str(e)}"
+            return f"Error in Anthropic AI call: {str(e)}"
 
     else:
         headers = {"Content-Type": "application/json"}
