@@ -9,7 +9,7 @@ app = FastAPI()
 @app.post("/{token}")
 async def handle_webhook(token: str, request: Request):
     bot_app = create_bot()
-   
+
     if token != os.getenv('TELEGRAM_TOKEN'):
         return {"status": "Invalid token"}
 
@@ -18,4 +18,5 @@ async def handle_webhook(token: str, request: Request):
 
     await bot_app.initialize()
     await bot_app.process_update(telegram_update)
-    return {"status": "ok"}
+
+    return {"status": "ok", "message": "Bot is ready!"}
